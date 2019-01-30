@@ -57,7 +57,6 @@ let sound = {
   enemies: "./assets/enemies.mp3",
   laser: "./assets/laser.mp3",
   explosion: "./assets/explosion.mp3",
-  explosion2: "./assets/explosion2.mp3",
   grind: "./assets/grind.mp3",
   gameOver: "./assets/gameover.mp3",
   boss: "./assets/boss.mp3",
