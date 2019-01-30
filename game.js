@@ -26,8 +26,6 @@ let interval;
 let images = {
   // Background
   bgOne: "./assets/bg/1.png",
-  bgTwo: "./assets/bg/2.png",
-  cover: "./assets/obstacles/intro.jpg",
   //Ships
   shipOne: "./assets/ship/redfighter0005.png",
   shipOneL: "./assets/ship/redfighter0001.png",
@@ -44,6 +42,8 @@ let images = {
   explosionOne: "./assets/obstacles/explosion1.png",
   explosionTwo: "./assets/obstacles/explosion.png",
   flame: "./assets/obstacles/flame.png",
+  powerUpOne: "./assets/obstacles/powerup.png",
+  powerUpTwo: "./assets/obstacles/powerup2.png",
   // Enemies
   enemyOne: "./assets/obstacles/blueship1.png",
   enemyTwo: "./assets/obstacles/blueship2.png",
@@ -61,7 +61,9 @@ let sound = {
   gameOver: "./assets/gameover.mp3",
   boss: "./assets/boss.mp3",
   win: "./assets/win.mp3",
-  bg: "./assets/bg.mp3"
+  bg: "./assets/bg.mp3",
+  shot: "./assets/shots.mp3",
+  powerup: "./assets/powerup.mp3",
 };
 let frames = 0;
 let gameOn = false;
@@ -71,6 +73,7 @@ let attacks = [];
 let explosions = [];
 let kills = 0;
 let score = 0;
+let powerups = []
 
 // CLASSES
 function Board() {
@@ -95,7 +98,7 @@ function Board() {
   this.image.onload = this.draw.bind(this);
 }
 class Ship {
-  constructor(img, x = 200, hp = 100, damage = 3) {
+  constructor(img, x = 200, hp = 100, damage = 2) {
     this.x = x;
     this.y = 100;
     this.width = 50;
@@ -103,6 +106,8 @@ class Ship {
     this.velY = 0;
     this.hp = hp;
     this.damage = damage;
+    this.moveCount = 10;
+    this.powerUp = false
     this.image = new Image();
     this.image.onload = this.draw.bind(this);
     this.image.src = img;
@@ -118,6 +123,7 @@ class Ship {
       this.y = canvas.height - this.height;
     if (this.y < 0) this.y = 0;
     ctx.drawImage(this.image, this.x, this.y, this.width, this.height);
+    this.moveForward()
   }
   checkIfTouch(obstacle) {
     return (
@@ -128,7 +134,33 @@ class Ship {
     );
   }
   moveForward() {
-    ctx.drawImage(this.flame, this.x + 20, this.y + this.height, 10, 12);
+    if (this.moveCount > 0) {
+      this.moveCount --
+      ctx.drawImage(this.flame, this.x + 20, this.y + this.height, 10, 12);
+    }
+  }
+  attack() {
+    if (!this.powerUp) {
+    generateAttack(
+      this.x + 25,
+      this.y - 10,
+      this.damage,
+      false,
+      "white",
+      "regular"
+    );
+    soundShot.play();
+    } else {
+      generateAttack(
+        this.x + 15,
+        this.y - 60,
+        this.damage,
+        false,
+        "white",
+        "power"
+      );
+      soundLaser.play();
+    }
   }
 }
 class Asteroid {
@@ -328,9 +360,6 @@ class Explosion extends Enemy {
     }
   }
 }
-// function explosion(x,y,width) {
-//   ctx.drawImage(images.explosionOne, x, y, width, width)
-// }
 
 class Attack {
   constructor(
@@ -422,6 +451,37 @@ class Attack {
   }
 }
 
+class Powerup {
+  constructor(x = 250, isHP = false) {
+    this.x = x;
+    this.y = -20;
+    this.width = 25;
+    this.height = 25;
+    this.sx = 0;
+    this.sy = 0;
+    this.isHP = isHP
+    this.image = new Image();
+    this.image.onload = this.draw.bind(this);
+    this.image.src = this.isHP ? images.powerUpOne : images.powerUpTwo
+  }
+  draw() {
+    this.y++
+    if (frames % 8 === 0) this.sx += 326;
+    if (this.sx === 1630) this.sx = 0;
+    ctx.drawImage(
+      this.image,
+      this.sx,
+      this.sy,
+      326,
+      326,
+      this.x,
+      this.y,
+      this.width,
+      this.height
+    );
+  }
+}
+
 // INSTANCES
 let board = new Board();
 let ship1 = new Ship(images.shipOne, 150);
@@ -470,6 +530,7 @@ function start() {
   enemies = [];
   attacks = [];
   explosions = [];
+  powerups = []
   frames = 0;
   kills = 0;
   score = 0;
@@ -506,6 +567,8 @@ function update() {
     soundBg.pause();
     soundBoss.play();
   }
+  generatePowerUp()
+  updatePowerUp()
   updateAsteroid();
   updateEnemy();
   generateAttack();
@@ -519,6 +582,7 @@ function gameOver() {
   soundGameOver.play();
   soundBoss.pause();
   soundBg.pause();
+  console.log("Oh, oh... you're lucky this is a videogame.");
   clearInterval(interval);
   ctx.fillStyle = "black";
   ctx.fillRect(0, 0, 512, 512);
@@ -539,6 +603,7 @@ function win() {
   soundBoss.pause();
   soundBg.pause();
   soundWin.play();
+  console.log("You've made it! Congratulations!");
   ctx.clearRect(0, 0, canvas.width, canvas.height);
   clearInterval(interval);
   ctx.fillStyle = "black";
@@ -572,10 +637,6 @@ let soundExplosion = new Audio();
 soundExplosion.src = sound.explosion;
 soundExplosion.loop = false;
 
-let soundExplosion2 = new Audio();
-soundExplosion2.src = sound.explosion2;
-soundExplosion2.loop = false;
-
 let soundGrind = new Audio();
 soundGrind.src = sound.grind;
 soundGrind.loop = false;
@@ -595,6 +656,14 @@ soundBg.loop = true;
 let soundGameOver = new Audio();
 soundGameOver.src = sound.gameOver;
 soundGameOver.currentTime = 0;
+
+let soundPowerUp = new Audio();
+soundPowerUp.src = sound.powerup;
+soundPowerUp.loop = false;
+
+let soundShot = new Audio();
+soundShot.src = sound.shot;
+soundShot.currentTime = 0;
 
 // Game score
 function gameScore() {
@@ -685,6 +754,26 @@ function updateEnemy() {
   });
 }
 
+function generatePowerUp() {
+  let xOptions = [100, 150, 200, 250, 300, 350];
+  let x = xOptions[Math.floor(Math.random() * xOptions.length)];
+  let isHP = ship1.powerUp && ship2.powerUp ? true : false
+  if (frames % 800 === 0 && frames >= 600) {
+    let powerUp = new Powerup(x, isHP);
+    powerups.push(powerUp)
+  }
+}
+
+function updatePowerUp() {
+  powerups.forEach((powerUp, index) => {
+    if (powerUp.y > canvas.height + powerUp.height) {
+      powerups.splice(index, 1);
+    } else {
+      powerUp.draw();
+    }
+  });
+}
+
 function generateExplosion(x, y, width, isBoss) {
   let explosion = new Explosion(x, y, width, isBoss);
   explosions.push(explosion);
@@ -724,10 +813,11 @@ function checkCollision() {
       ship2.hp -= 5;
       console.log("Captain! Our ships have touched!");
       //soundGrind.play();
-      soundExplosion2.play();
+      soundExplosion.play();
       generateExplosion(ship1.x + 30, ship1.y + 40, 15);
     }
   }
+  // Game over?
   if (ship1.hp === 0 && ship2.hp === 0) {
     gameOver();
     ship1.x = 1000;
@@ -735,6 +825,7 @@ function checkCollision() {
     console.log("Oh no! Eyegull has defeated us :(");
     soundExplosion.play();
   }
+  // Ship 1 down?
   if (ship1.hp < 0) {
     ship1.hp = 0;
     if (frames % 100 === 0) {
@@ -744,6 +835,7 @@ function checkCollision() {
     generateExplosion(ship1.x + ship1.width / 2, ship1.y, 100, true);
     soundExplosion.play();
   }
+  // Ship 2 down?
   if (ship2.hp < 0) {
     ship2.hp = 0;
     if (frames % 100 === 0) {
@@ -753,6 +845,35 @@ function checkCollision() {
     generateExplosion(ship2.x + ship2.width / 2, ship2.y, 100, true);
     soundExplosion.play();
   }
+    // Powerups <> ships
+    powerups.forEach((powerUp, index) => {
+      if (ship1.checkIfTouch(powerUp)) {
+        if(powerUp.isHP) {
+        ship1.hp >80 ? ship1.hp = 100 : ship1.hp += 20;
+        powerups.splice(index, 1);
+        console.log("Ship 1 got the +20HP power up!");
+        soundPowerUp.play();
+        } else {
+          ship1.powerUp = true
+          powerups.splice(index, 1);
+          console.log("Ship 1 got the Laser gun power up!");
+          soundPowerUp.play();
+        }
+      }
+      if (ship2.checkIfTouch(powerUp)) {
+        if(powerUp.isHP) {
+        ship2.hp >80 ? ship2.hp = 100 : ship2.hp += 20;
+        powerups.splice(index, 1);
+        console.log("Ship 2 got the +20HP power up!");
+        soundPowerUp.play();
+        } else {
+          ship2.powerUp = true
+          powerups.splice(index, 1);
+          console.log("Ship 2 got the Laser gun power up!");
+          soundPowerUp.play();
+        }
+      }
+    });
   // Asteroids <> ships
   asteroids.forEach((asteroid, index) => {
     if (ship1.checkIfTouch(asteroid)) {
@@ -795,7 +916,7 @@ function checkCollision() {
         soundExplosion.play();
         console.log("Yesss! We've destroyed Eyegull!");
         generateExplosion(100, 100, 200, true);
-        generateExplosion(200, 0, 100, true);
+        generateExplosion(200, 0, 300, true);
         generateExplosion(0, 10, 200, true);
         generateExplosion(350, 250, 100, true);
         generateExplosion(350, 100, 150, true);
@@ -811,11 +932,11 @@ function checkCollision() {
         score += 200;
         setTimeout(() => {
           win();
-        }, 1000);
+        }, 1500);
       } else {
         generateExplosion(attack.x, attack.y, 20);
         boss.hp -= attack.damage;
-        soundExplosion2.play();
+        soundExplosion.play();
       }
     }
     asteroids.forEach((asteroid, asteroidIndex) => {
@@ -826,7 +947,7 @@ function checkCollision() {
           generateExplosion(asteroid.x, asteroid.y, asteroid.width);
           asteroids.splice(asteroidIndex, 1);
           score += 20;
-          soundExplosion2.play();
+          soundExplosion.play();
         } else {
           asteroid.hp -= attack.damage;
         }
@@ -838,7 +959,7 @@ function checkCollision() {
         if (enemy.hp < attack.damage) {
           console.log("Enemy destroyed! +50 points!");
           generateExplosion(enemy.x, enemy.y, enemy.width);
-          soundExplosion2.play();
+          soundExplosion.play();
           enemies.splice(enemyIndex, 1);
           kills++;
           score += 50;
@@ -878,82 +999,70 @@ addEventListener("keydown", e => {
   } else {
     switch (e.keyCode) {
       // Ship 1
-      case 13: // enter
+      case 32: // enter
         if (ship1.hp > 0) {
-          generateAttack(
-            ship1.x + 15,
-            ship1.y - 60,
-            ship1.damage,
-            false,
-            "white",
-            "power"
-          );
-          soundLaser.play();
+ship1.attack()
         }
         break;
-      case 37: // left
+      case 65: // left
         if (ship1.hp > 0) {
           ship1.x -= 20;
           ship1.image.src = images.shipOneL;
-          ship1.moveForward();
+          ship1.moveCount = 10
         }
         break;
-      case 39: // right
+      case 68: // right
         if (ship1.hp > 0) {
           ship1.x += 20;
           ship1.image.src = images.shipOneR;
-          ship1.moveForward();
+          ship1.moveCount = 10
         }
         break;
-      case 38: // front
+      case 87: // front
         if (ship1.hp > 0) {
           ship1.y -= 20;
           ship1.image.src = images.shipOne;
-          ship1.moveForward();
+          ship1.moveCount = 10
         }
         break;
-      case 40: // back
+      case 83: // back
         if (ship1.hp > 0) {
           ship1.y += 20;
           ship1.image.src = images.shipOne;
         }
         break;
-      // Ship 2
-      case 32: // space bar
+      // Ship 2 - 37, 39, 38, 40
+      case 13: // space bar
         if (ship2.hp > 0) {
-          generateAttack(
-            ship2.x + 15,
-            ship2.y - 60,
-            ship2.damage,
-            false,
-            "white",
-            "power"
-          );
-          soundLaser.play();
+ship2.attack()
         }
         break;
-      case 65: // left
+      case 37: // left
         if (ship2.hp > 0) {
           ship2.x -= 20;
           ship2.image.src = images.shipTwoL;
+          ship2.moveCount = 10
         }
         break;
-      case 68: // right
+      case 39: // right
         if (ship2.hp > 0) {
           ship2.x += 20;
           ship2.image.src = images.shipTwoR;
+          ship2.moveCount = 10
         }
         break;
-      case 87: // front
+      case 38: // front
         if (ship2.hp > 0) {
           ship2.y -= 20;
           ship2.image.src = images.shipTwo;
+          ship2.moveCount = 10
         }
         break;
-      case 83: // back
+      case 40: // back
         if (ship2.hp > 0) {
           ship2.y += 20;
           ship2.image.src = images.shipTwo;
+          ship2.moveCount = 10
         }
         break;
     }

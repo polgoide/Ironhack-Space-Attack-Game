@@ -36,7 +36,7 @@ html, body {
 li {
   display:none;
 }
-li:nth-last-child(-n+4){
+li:nth-last-child(-n+3){
     display:block;
 } 
 li:nth-child(even) {
