@@ -724,7 +724,8 @@ function checkCollision() {
       ship1.hp -= 5;
       ship2.hp -= 5;
       console.log("Captain! Our ships have touched!");
-      soundGrind.play();
+      //soundGrind.play();
+      soundExplosion2.play();
       generateExplosion(ship1.x + 30, ship1.y + 40, 15);
     }
   }
