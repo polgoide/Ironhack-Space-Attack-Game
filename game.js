@@ -738,7 +738,6 @@ function checkCollision() {
   }
   if (ship1.hp < 0) {
     ship1.hp = 0;
-    //ship1.x = 1000
     if (frames % 100 === 0) {
       ship1.x = 1000;
       console.log("Oh no! We have lost Ship 1! Ship 2, we are in your hands");
